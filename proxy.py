@@ -11,7 +11,8 @@ def main():
         proxy_blacklist_path = sys.argv[3]
 
     except IndexError:
-        print("USAGE: python3 proxy.py <port> <flag_telemetry> <filename of blacklist>")
+        print("USAGE: python3 proxy.py <port> <flag_telemetry (0 or 1)> <filename of blacklist>")
+        return
 
     # set up proxy socket
     proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
