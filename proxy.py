@@ -52,7 +52,7 @@ class ProxyThread(threading.Thread):
         request = ""
     
         while True:
-            request += self.client.recv(1024).decode('utf-8')
+            request += self.client.recv(1024).decode('ISO-8859-1')
             end_index = request.find('\r\n')
             
             if end_index > -1:
@@ -71,11 +71,11 @@ class ProxyThread(threading.Thread):
             server_info = socket.getaddrinfo(server_hostname, server_port)
             address_family = server_info[0][0]
             server_address = server_info[0][4]
-            print(address_family, server_address, "\n")
+            # print(address_family, server_address, "\n")
 
             self.server = socket.socket(address_family)
             self.server.connect(server_address)
-            self.client.send(bytes((http_version + " 200 Connection established\r\n\r\n"), encoding="utf-8"))
+            self.client.send(bytes((http_version + " 200 Connection established\r\n\r\n"), encoding="ISO-8859-1"))
 
             # classify into readable, writable and check for exception lists
             readable_list = [self.client, self.server]
