@@ -1,6 +1,7 @@
 import sys
 import socket
 import threading
+import select
 
 def main():
 
@@ -74,12 +75,33 @@ class ProxyThread(threading.Thread):
 
             self.server = socket.socket(address_family)
             self.server.connect(server_address)
+            self.client.send(bytes((http_version + " 200 Connection established\r\n\r\n"), encoding="utf-8"))
 
-            # handle server-client connection here
+            # classify into readable, writable and check for exception lists
+            readable_list = [self.client, self.server]
+            writable_list = []
+            exceptional_list = [self.client, self.server]
+
+            while True:
+                is_readable_list, is_writable_list, has_error_list = select.select(readable_list, writable_list, exceptional_list)
+                if len(has_error_list) > 0:
+                    break
+                if len(is_readable_list) == 0:
+                    break
+                for host in is_readable_list:
+                    data = host.recv(1024)
+                    if host == self.server:
+                        sender_host = self.client
+                    else:
+                        sender_host = self.server
+                    if data:
+                        sender_host.send(data)
 
         else:
             print("handle this later")
             return
+
+
 
 if __name__ == '__main__':
     main()
