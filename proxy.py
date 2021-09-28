@@ -21,7 +21,7 @@ def main():
     proxy_socket.bind(('', proxy_port))
     # welcome socket accepts a certain number of connections (Supports up to maximum 8 threads)
     proxy_socket.listen(8)
-    print("Proxy is listening at port: " + str(proxy_port))
+    print("Proxy is listening at port: " + str(proxy_port), "\n")
 
     # spawn a thread for every request
     while True:
@@ -52,6 +52,9 @@ class ProxyThread(threading.Thread):
 
         self.client.close()
         self.server.close()
+        print("Threads active (including main but excluding current thread): ", threading.active_count() - 1, "\n")
+
+        return
 
 
     # receive requests from client -> extract method, url, http_version
@@ -123,14 +126,15 @@ class ProxyThread(threading.Thread):
         exceptional_list = [self.client, self.server]
 
         # interaction between client and server through proxy
-        while True:
+        not_done = True
+        while not_done:
             is_readable_list, is_writable_list, has_error_list = select.select(readable_list, writable_list, exceptional_list)
-            print("is readable")
-            print(is_readable_list)
-            print("is writable")
-            print(is_writable_list)
-            print("has error list")
-            print(has_error_list)
+            # print("is readable")
+            # print(is_readable_list)
+            # print("is writable")
+            # print(is_writable_list)
+            # print("has error list")
+            # print(has_error_list)
             if len(has_error_list) > 0:
                 break
             if len(is_readable_list) == 0:
@@ -144,8 +148,8 @@ class ProxyThread(threading.Thread):
                 if data:
                     receiver_socket.send(data)
                 else:
+                    not_done = False
                     break
-
 
 
 if __name__ == '__main__':
