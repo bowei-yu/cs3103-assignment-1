@@ -11,7 +11,7 @@ def main():
         proxy_telemetry = int(sys.argv[2])
         proxy_blacklist_path = sys.argv[3]
 
-    except IndexError or ValueError:
+    except (IndexError, ValueError):
         print("USAGE: python3 proxy.py <port (Integer)> <flag_telemetry (0 or 1)> <filename of blacklist (String)>")
         print("Please ensure that the arguments are in the correct format.")
         return
