@@ -19,7 +19,8 @@ def main():
     # set up proxy socket
     proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     proxy_socket.bind(('', proxy_port))
-    proxy_socket.listen(5)
+    # welcome socket accepts a certain number of connections (Supports up to maximum 8 threads)
+    proxy_socket.listen(8)
     print("Proxy is listening at port: " + str(proxy_port))
 
     # spawn a thread for every request
@@ -53,20 +54,29 @@ class ProxyThread(threading.Thread):
         self.server.close()
 
 
+    # receive requests from client -> extract method, url, http_version
     def parse_request(self):
         request = ""
 
         while True:
+            # request from client
             request += self.client.recv(1024).decode('ISO-8859-1')
             end_index = request.find('\r\n')
             
             if end_index > -1:
+                # e.g CONNECT play.google.com:443 HTTP/1.1
                 parsed_request = request[:end_index].split(" ")
+                # e.g of additional request data
+                # User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:92.0) Gecko/20100101 Firefox/92.0
+                # Proxy-Connection: keep-alive
+                # Connection: keep-alive
+                # Host: ssl.gstatic.com:443
                 self.additional_request_data = bytes((request[end_index + 1:]), encoding="ISO-8859-1")
                 # obtains method, url and http_version respectively
                 return parsed_request[0], parsed_request[1], parsed_request[2]
 
 
+    # method, url, http_version -> send requests to server
     def handle_request(self, method, url, http_version):
         
         if method not in self.HTTP_METHODS:
@@ -74,8 +84,11 @@ class ProxyThread(threading.Thread):
             return
 
         if method == "CONNECT":
+            # e.g www.google.com:443
             parsed_address = url.split(":")
+            # e.g www.google.com
             server_hostname = parsed_address[0]
+            # e.g 443
             server_port = parsed_address[1]
 
         else:
@@ -87,12 +100,17 @@ class ProxyThread(threading.Thread):
             server_port = 80
 
         server_info = socket.getaddrinfo(server_hostname, server_port)
+        # e.g AddressFamily.AF_INET
         address_family = server_info[0][0]
+        # e.g ('74.125.24.139', 443)
         server_address = server_info[0][4]
         # print(address_family, server_address, "\n")
 
+        # establish connection with server socket
         self.server = socket.socket(address_family)
         self.server.connect(server_address)
+        # if client attempts to establish a TCP connection, inform client that connection has been
+        # established with server
         if method == "CONNECT":
             self.client.send(bytes((http_version + " 200 Connection established\r\n\r\n"), encoding="ISO-8859-1"))
         else:
@@ -107,6 +125,12 @@ class ProxyThread(threading.Thread):
         # interaction between client and server through proxy
         while True:
             is_readable_list, is_writable_list, has_error_list = select.select(readable_list, writable_list, exceptional_list)
+            print("is readable")
+            print(is_readable_list)
+            print("is writable")
+            print(is_writable_list)
+            print("has error list")
+            print(has_error_list)
             if len(has_error_list) > 0:
                 break
             if len(is_readable_list) == 0:
