@@ -2,6 +2,7 @@ import sys
 import socket
 import threading
 import select
+import time
 
 def main():
 
@@ -10,6 +11,7 @@ def main():
         proxy_port = int(sys.argv[1])
         proxy_telemetry = int(sys.argv[2])
         proxy_blacklist_path = sys.argv[3]
+        extensions = Extensions(proxy_telemetry, proxy_blacklist_path)
 
     except (IndexError, ValueError):
         print("USAGE: python3 proxy.py <port (Integer)> <flag_telemetry (0 or 1)> <filename of blacklist (String)>")
@@ -26,8 +28,24 @@ def main():
     # spawn a thread for every request
     while True:
         client, address = proxy_socket.accept()
-        proxy_thread = ProxyThread(client)
+        proxy_thread = ProxyThread(client, extensions)
         proxy_thread.start()
+
+
+
+class Extensions:
+
+    def __init__(self, proxy_telemetry, proxy_blacklist_path):
+        self.proxy_telemetry = proxy_telemetry
+        self.proxy_blacklist_path = proxy_blacklist_path
+
+
+    def get_proxy_telemetry(self):
+        return self.proxy_telemetry
+
+
+    def get_blacklist_path(self):
+        return self.proxy_blacklist_path
 
 
 
@@ -36,22 +54,34 @@ class ProxyThread(threading.Thread):
     HTTP_METHODS = {"GET", "CONNECT", "POST", "PUT", "PATCH", "DELETE", "HEAD", "TRACE", "OPTIONS"}
 
 
-    def __init__(self, client):
+    def __init__(self, client, extensions):
         threading.Thread.__init__(self)
         self.client = client
         self.server = None
         self.additional_request_data = None
+        self.hostname = None
+        self.size = 0
+        self.start_time = None
+        self.end_time = None
+        self.extensions = extensions
 
 
     # overriden method from threading.Thread library
     def run(self):
         method, url, http_version = self.parse_request()
+        self.hostname = url
         print(method, url, http_version, "\n")
-        
         self.handle_request(method, url, http_version)
-
         self.client.close()
         self.server.close()
+        self.end_time = time.time()
+
+        # handle telemetry
+        if self.extensions.get_proxy_telemetry() == 1:
+            # Fetch time
+            fetch_time = str(format((self.end_time - self.start_time), ".3f"))
+            print("Hostname: " + url + ", Size: " + str(self.size) + " bytes, Time: " + fetch_time + " sec")
+
         print("Threads active (including main but excluding current thread): ", threading.active_count() - 1, "\n")
 
         return
@@ -62,6 +92,7 @@ class ProxyThread(threading.Thread):
         request = ""
 
         while True:
+            self.start_time = time.time()
             # request from client
             request += self.client.recv(1024).decode('ISO-8859-1')
             end_index = request.find('\r\n')
@@ -116,6 +147,7 @@ class ProxyThread(threading.Thread):
         # established with server
         if method == "CONNECT":
             self.client.send(bytes((http_version + " 200 Connection established\r\n\r\n"), encoding="ISO-8859-1"))
+        # otherwise, use the proxy tunnel to send HTTP messages to server
         else:
             self.server.send(bytes((method + " " + url + " " + http_version), encoding="ISO-8859-1"))
             self.server.send(self.additional_request_data)
@@ -141,8 +173,13 @@ class ProxyThread(threading.Thread):
                 break
             for sender_socket in is_readable_list:
                 data = sender_socket.recv(1024)
+                # data can come from either the client or server
+                # if data comes from server, send to client
                 if sender_socket == self.server:
                     receiver_socket = self.client
+                    # Telemetry requires us to find stream size of object from web server
+                    self.size += len(data)
+                # if data comes from client, send to server
                 else:
                     receiver_socket = self.server
                 if data:
