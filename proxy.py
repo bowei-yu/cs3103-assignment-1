@@ -2,6 +2,10 @@ import sys
 import socket
 import threading
 import select
+import time
+import queue
+
+clients = queue.Queue()
 
 def main():
 
@@ -20,14 +24,33 @@ def main():
     proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     proxy_socket.bind(('', proxy_port))
     # welcome socket accepts a certain number of connections (Supports up to maximum 8 threads)
-    proxy_socket.listen(8)
+    proxy_socket.listen(100)
     print("Proxy is listening at port: " + str(proxy_port), "\n")
 
-    # spawn a thread for every request
+    clients_thread = GetClientsThread(proxy_socket)
+    clients_thread.start()
+
+    # spawn at most 8 threads
     while True:
-        client, address = proxy_socket.accept()
-        proxy_thread = ProxyThread(client)
-        proxy_thread.start()
+        time.sleep(0)
+        if threading.active_count() < 10:
+            proxy_thread = ProxyThread(clients.get())
+            proxy_thread.start()
+            print(clients.qsize())
+
+
+
+class GetClientsThread(threading.Thread):
+
+    def __init__(self, proxy):
+        threading.Thread.__init__(self)
+        self.proxy = proxy
+
+    def run(self):
+        while True:
+            client, address = self.proxy.accept()
+            clients.put(client)
+
 
 
 
@@ -45,6 +68,7 @@ class ProxyThread(threading.Thread):
 
     # overriden method from threading.Thread library
     def run(self):
+        start = time.time()
         method, url, http_version = self.parse_request()
         print(method, url, http_version, "\n")
         
@@ -53,7 +77,7 @@ class ProxyThread(threading.Thread):
         self.client.close()
         self.server.close()
         print("Threads active (including main but excluding current thread): ", threading.active_count() - 1, "\n")
-
+        print(time.time() - start)
         return
 
 
@@ -112,6 +136,7 @@ class ProxyThread(threading.Thread):
         # establish connection with server socket
         self.server = socket.socket(address_family)
         self.server.connect(server_address)
+
         # if client attempts to establish a TCP connection, inform client that connection has been
         # established with server
         if method == "CONNECT":
@@ -136,9 +161,9 @@ class ProxyThread(threading.Thread):
             # print("has error list")
             # print(has_error_list)
             if len(has_error_list) > 0:
-                break
+                return
             if len(is_readable_list) == 0:
-                break
+                return
             for sender_socket in is_readable_list:
                 data = sender_socket.recv(1024)
                 if sender_socket == self.server:
@@ -148,7 +173,6 @@ class ProxyThread(threading.Thread):
                 if data:
                     receiver_socket.send(data)
                 else:
-                    not_done = False
                     break
 
 
