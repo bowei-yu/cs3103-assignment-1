@@ -3,6 +3,9 @@ import socket
 import threading
 import select
 import time
+import queue
+
+clients = queue.Queue()
 
 def main():
 
@@ -22,15 +25,34 @@ def main():
     # set up proxy socket
     proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     proxy_socket.bind(('', proxy_port))
-    # welcome socket accepts a certain number of connections (Supports up to maximum 8 threads)
-    proxy_socket.listen(8)
+    proxy_socket.listen(100)
     print("Proxy is listening at port: " + str(proxy_port), "\n")
 
-    # spawn a thread for every request
+    # a separate thread for listening for connections
+    clients_thread = GetClientsThread(proxy_socket)
+    clients_thread.start()
+
+    # spawn at most 7 threads (excluded the first thread for connections as above)
     while True:
-        client, address = proxy_socket.accept()
-        proxy_thread = ProxyThread(client, extensions)
-        proxy_thread.start()
+        # time.sleep(0)
+        if threading.active_count() < 9:
+            proxy_thread = ProxyThread(clients.get(), extensions)
+            proxy_thread.start()
+            # print("Current number of clients in queue: ", clients.qsize())
+
+
+
+class GetClientsThread(threading.Thread):
+
+    def __init__(self, proxy):
+        threading.Thread.__init__(self)
+        self.proxy = proxy
+
+    def run(self):
+        # simply listens for connections
+        while True:
+            client, address = self.proxy.accept()
+            clients.put(client)
 
 
 
