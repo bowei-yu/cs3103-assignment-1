@@ -9,9 +9,10 @@ def main():
     # retrieve arguments
     try:
         proxy_port = int(sys.argv[1])
-        proxy_telemetry = int(sys.argv[2])
-        proxy_blacklist_path = sys.argv[3]
-        extensions = Extensions(proxy_telemetry, proxy_blacklist_path)
+        telemetry = int(sys.argv[2])
+        blacklist_file = sys.argv[3]
+        blacklisted_urls = Extensions.parse_blacklist_txt(blacklist_file)
+        extensions = Extensions(telemetry, blacklisted_urls)
 
     except (IndexError, ValueError):
         print("USAGE: python3 proxy.py <port (Integer)> <flag_telemetry (0 or 1)> <filename of blacklist (String)>")
@@ -35,23 +36,35 @@ def main():
 
 class Extensions:
 
-    def __init__(self, proxy_telemetry, proxy_blacklist_path):
-        self.proxy_telemetry = proxy_telemetry
-        self.proxy_blacklist_path = proxy_blacklist_path
+    def __init__(self, telemetry, blacklisted_urls):
+        self.telemetry = telemetry
+        self.blacklisted_urls = blacklisted_urls
 
 
-    def get_proxy_telemetry(self):
-        return self.proxy_telemetry
+    def get_telemetry(self):
+        return self.telemetry
 
 
-    def get_blacklist_path(self):
-        return self.proxy_blacklist_path
+    def get_blacklisted_urls(self):
+        return self.blacklisted_urls
+
+
+    @classmethod
+    def parse_blacklist_txt(self, blacklist_file):
+        txt = open(blacklist_file, "r")
+        urls = []
+        for url in txt:
+            # remove one-line breaks and append to urls array
+            urls.append(url.strip())
+        print("Blacklisted sites:")
+        print(urls)
+        return urls
 
 
 
 class ProxyThread(threading.Thread):
 
-    HTTP_METHODS = {"GET", "CONNECT", "POST", "PUT", "PATCH", "DELETE", "HEAD", "TRACE", "OPTIONS"}
+    HTTP_METHODS = ["GET", "CONNECT", "POST", "PUT", "PATCH", "DELETE", "HEAD", "TRACE", "OPTIONS"]
 
 
     def __init__(self, client, extensions):
@@ -68,23 +81,43 @@ class ProxyThread(threading.Thread):
 
     # overriden method from threading.Thread library
     def run(self):
-        method, url, http_version = self.parse_request()
-        self.hostname = url
-        print(method, url, http_version, "\n")
-        self.handle_request(method, url, http_version)
-        self.client.close()
-        self.server.close()
-        self.end_time = time.time()
+        try:
+            method, url, http_version = self.parse_request()
 
-        # handle telemetry
-        if self.extensions.get_proxy_telemetry() == 1:
-            # Fetch time
-            fetch_time = str(format((self.end_time - self.start_time), ".3f"))
-            print("Hostname: " + url + ", Size: " + str(self.size) + " bytes, Time: " + fetch_time + " sec")
+            # check if url is blacklisted
+            blacklisted_urls = self.extensions.get_blacklisted_urls()
+            is_blacklisted = False;
+            for blacklist_url in blacklisted_urls:
+                if blacklist_url in url:
+                    is_blacklisted = True;
+                    self.client.close()
+                    self.server.close()
 
-        print("Threads active (including main but excluding current thread): ", threading.active_count() - 1, "\n")
+            self.hostname = url
+            # print(method, url, http_version, "\n")
+            self.handle_request(method, url, http_version)
+            self.client.close()
+            self.server.close()
+            self.end_time = time.time()
 
-        return
+            # handle telemetry
+            telemetry_enabled = self.extensions.get_telemetry() == 1;
+            if telemetry_enabled:
+                # fetch time
+                fetch_time = str(format((self.end_time - self.start_time), ".3f"))
+                print("Hostname: " + url + ", Size: " + str(self.size) + " bytes, Time: " + fetch_time + " sec")
+
+            print("Threads active (including main but excluding current thread): ", threading.active_count() - 1, "\n")
+
+            return
+
+        except AttributeError:
+            # throw error message to inform user that url is blacklisted
+            if (is_blacklisted):
+                print("Site " + str(url) + " is blacklisted in blacklist.txt. Closing connection.")
+            # if the error is not due to blacklisting, don't catch it
+            else:
+                raise AttributeError
 
 
     # receive requests from client -> extract method, url, http_version
