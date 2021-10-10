@@ -127,9 +127,9 @@ class ProxyThread(threading.Thread):
             if telemetry_enabled:
                 # fetch time
                 fetch_time = str(format((self.end_time - self.start_time), ".3f"))
-                print("Hostname: " + url + ", Size: " + str(self.size) + " bytes, Time: " + fetch_time + " sec")
+                print("Hostname: " + url.split(":")[0] + ", Size: " + str(self.size) + " bytes, Time: " + fetch_time + " sec")
 
-            print("Threads active (including main but excluding current thread): ", threading.active_count() - 1, "\n")
+            # print("Threads active (including main but excluding current thread): ", threading.active_count() - 1, "\n")
 
             return
 
