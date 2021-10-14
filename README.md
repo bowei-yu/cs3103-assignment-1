@@ -3,7 +3,7 @@
 # Instructions to compile and run proxy
 ### 1. Install Python 3
 ### 2. For optimal performance, configure the following settings in Firefox about:config
-![](images\connections_config.png)
+![](images/connections_config.png)
 ### 3. Pull the Github repository to a destinationed local folder
 ### 4. On the target platforms xcne1.comp.nus.edu.sg and xcne2.comp.nus.edu.sg, run the following command:
 
