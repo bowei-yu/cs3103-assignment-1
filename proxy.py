@@ -1,6 +1,6 @@
 import sys
 import socket
-import threading
+import multiprocessing
 import select
 import time
 import queue
@@ -35,17 +35,21 @@ def main():
     # spawn at most 8 threads (excluded the first thread for connections as above)
     while True:
         # time.sleep(0)
-        if threading.active_count() <= 8:
+        if len(multiprocessing.active_children()) <= 8:
+            print("Hi I am here1")
+            print(clients.qisize())
             proxy_thread = ProxyThread(clients.get(), extensions)
+            print("Hi I am here2")
             proxy_thread.start()
+            print("Hi I am here3")
             # print("Current number of clients in queue: ", clients.qsize())
 
 
 
-class GetClientsThread(threading.Thread):
+class GetClientsThread(multiprocessing.Process):
 
     def __init__(self, proxy):
-        threading.Thread.__init__(self)
+        multiprocessing.Process.__init__(self)
         self.proxy = proxy
 
     def run(self):
@@ -84,13 +88,13 @@ class Extensions:
 
 
 
-class ProxyThread(threading.Thread):
+class ProxyThread(multiprocessing.Process):
 
     HTTP_METHODS = ["GET", "CONNECT", "POST", "PUT", "PATCH", "DELETE", "HEAD", "TRACE", "OPTIONS"]
 
 
     def __init__(self, client, extensions):
-        threading.Thread.__init__(self)
+        multiprocessing.Process.__init__(self)
         self.client = client
         self.server = None
         self.additional_request_data = None
