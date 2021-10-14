@@ -32,10 +32,10 @@ def main():
     clients_thread = GetClientsThread(proxy_socket)
     clients_thread.start()
 
-    # spawn at most 7 threads (excluded the first thread for connections as above)
+    # spawn at most 8 threads (excluded the first thread for connections as above)
     while True:
         # time.sleep(0)
-        if threading.active_count() < 9:
+        if threading.active_count() <= 8:
             proxy_thread = ProxyThread(clients.get(), extensions)
             proxy_thread.start()
             # print("Current number of clients in queue: ", clients.qsize())
@@ -222,27 +222,30 @@ class ProxyThread(threading.Thread):
             # print(is_writable_list)
             # print("has error list")
             # print(has_error_list)
-            if len(has_error_list) > 0:
-                break
-            if len(is_readable_list) == 0:
-                break
-            for sender_socket in is_readable_list:
-                data = sender_socket.recv(1024)
-                # data can come from either the client or server
-                # if data comes from server, send to client
-                if sender_socket == self.server:
-                    receiver_socket = self.client
-                    # Telemetry requires us to find stream size of object from web server
-                    self.size += len(data)
-                # if data comes from client, send to server
-                else:
-                    receiver_socket = self.server
-                if data:
-                    receiver_socket.send(data)
-                else:
-                    not_done = False
+            try:
+                if len(has_error_list) > 0:
                     break
-
+                if len(is_readable_list) == 0:
+                    break
+                for sender_socket in is_readable_list:
+                    data = sender_socket.recv(1024)
+                    # data can come from either the client or server
+                    # if data comes from server, send to client
+                    if sender_socket == self.server:
+                        receiver_socket = self.client
+                        # telemetry requires us to find stream size of object from web server
+                        self.size += len(data)
+                    # if data comes from client, send to server
+                    else:
+                        receiver_socket = self.server
+                    if data:
+                        receiver_socket.send(data)
+                    else:
+                        not_done = False
+                        break
+            # # suppress error to show only valid telemetry entries
+            except:
+                pass
 
 if __name__ == '__main__':
     main()
