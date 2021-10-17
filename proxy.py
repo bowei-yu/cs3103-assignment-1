@@ -120,7 +120,8 @@ class ProxyThread(threading.Thread):
             # print(method, url, http_version, "\n")
             self.handle_request(method, url, http_version)
             self.client.close()
-            self.server.close()
+            if self.server is not None:
+                self.server.close()
             self.end_time = time.time()
 
             # handle telemetry
@@ -128,7 +129,7 @@ class ProxyThread(threading.Thread):
             if telemetry_enabled:
                 # fetch time
                 fetch_time = str(format((self.end_time - self.start_time), ".3f"))
-                print("Hostname: " + url.split(":")[0] + ", Size: " + str(self.size) + " bytes, Time: " + fetch_time + " sec")
+                print("Hostname: " + str(url) + ", Size: " + str(self.size) + " bytes, Time: " + fetch_time + " sec")
 
             # print("Threads active (including main but excluding current thread): ", threading.active_count() - 1, "\n")
 
@@ -137,7 +138,7 @@ class ProxyThread(threading.Thread):
         except AttributeError:
             # throw error message to inform user that url is blacklisted
             if (is_blacklisted):
-                print("Site " + str(url.split(":")[0]) + " is blacklisted in blacklist.txt. Closing connection.")
+                print("Site " + str(url) + " is blacklisted in blacklist.txt. Closing connection.")
             # if the error is not due to blacklisting, don't catch it
             else:
                 raise AttributeError
@@ -189,7 +190,13 @@ class ProxyThread(threading.Thread):
             url = parsed_url[1]
             server_port = 80
 
-        server_info = socket.getaddrinfo(server_hostname, server_port)
+        server_info = ''
+        try:
+            server_info = socket.getaddrinfo(server_hostname, server_port)
+        except OSError:
+            print("The address cannot be resolved!")
+            return
+
         # e.g AddressFamily.AF_INET
         address_family = server_info[0][0]
         # e.g ('74.125.24.139', 443)
