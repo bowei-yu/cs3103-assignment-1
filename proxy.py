@@ -136,7 +136,7 @@ class ProxyThread(threading.Thread):
         except AttributeError:
             # throw error message to inform user that url is blacklisted
             if (is_blacklisted):
-                print("Site " + str(url) + " is blacklisted in blacklist.txt. Closing connection.")
+                print("Site " + str(url.split(":")[0]) + " is blacklisted in blacklist.txt. Closing connection.")
             # if the error is not due to blacklisting, don't catch it
             else:
                 raise AttributeError
