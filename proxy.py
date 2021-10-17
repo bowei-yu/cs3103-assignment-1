@@ -77,7 +77,8 @@ class Extensions:
         urls = []
         for url in txt:
             # remove one-line breaks and append to urls array
-            urls.append(url.strip())
+            if not url.isspace():
+                urls.append(url.strip())
         print("Blacklisted sites:")
         print(urls)
         return urls
@@ -108,10 +109,10 @@ class ProxyThread(threading.Thread):
 
             # check if url is blacklisted
             blacklisted_urls = self.extensions.get_blacklisted_urls()
-            is_blacklisted = False;
+            is_blacklisted = False
             for blacklist_url in blacklisted_urls:
                 if blacklist_url in url:
-                    is_blacklisted = True;
+                    is_blacklisted = True
                     self.client.close()
                     self.server.close()
 
@@ -123,7 +124,7 @@ class ProxyThread(threading.Thread):
             self.end_time = time.time()
 
             # handle telemetry
-            telemetry_enabled = self.extensions.get_telemetry() == 1;
+            telemetry_enabled = self.extensions.get_telemetry() == 1
             if telemetry_enabled:
                 # fetch time
                 fetch_time = str(format((self.end_time - self.start_time), ".3f"))
