@@ -113,6 +113,7 @@ class ProxyThread(threading.Thread):
             for blacklist_url in blacklisted_urls:
                 if blacklist_url in url:
                     is_blacklisted = True
+                    self.client.send(bytes((http_version + " 403 Forbidden\r\n\r\n"), encoding="ISO-8859-1"))
                     self.client.close()
                     self.server.close()
 
@@ -195,6 +196,7 @@ class ProxyThread(threading.Thread):
             server_info = socket.getaddrinfo(server_hostname, server_port)
         except OSError:
             print("The address cannot be resolved!")
+            self.client.send(bytes((http_version + " 404 Not found\r\n\r\n"), encoding="ISO-8859-1"))
             return
 
         # e.g AddressFamily.AF_INET
