@@ -24,6 +24,8 @@ def main():
 
     # set up proxy socket
     proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # allow for port number reuse
+    proxy_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     proxy_socket.bind(('', proxy_port))
     proxy_socket.listen(100)
     print("Proxy is listening at port: " + str(proxy_port), "\n")
@@ -238,7 +240,7 @@ class ProxyThread(threading.Thread):
                 if len(is_readable_list) == 0:
                     break
                 for sender_socket in is_readable_list:
-                    data = sender_socket.recv(1024)
+                    data = sender_socket.recv(64000)
                     # data can come from either the client or server
                     # if data comes from server, send to client
                     if sender_socket == self.server:
