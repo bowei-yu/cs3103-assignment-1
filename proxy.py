@@ -13,14 +13,18 @@ def main():
     # retrieve arguments
     try:
         proxy_port = int(sys.argv[1])
+        if proxy_port < 0 or proxy_port > 65535:
+            raise OverflowError 
         telemetry = int(sys.argv[2])
+        if telemetry != 0 and telemetry != 1:
+            raise ValueError()
         blacklist_file = sys.argv[3]
         blacklisted_urls = Extensions.parse_blacklist_txt(blacklist_file)
         extensions = Extensions(telemetry, blacklisted_urls)
 
-    except (IndexError, ValueError):
-        print("USAGE: python3 proxy.py <port (Integer)> <flag_telemetry (0 or 1)> <filename of blacklist (String)>")
-        print("Please ensure that the arguments are in the correct format.")
+    except (IndexError, ValueError, FileNotFoundError, OverflowError):
+        print("USAGE: python3 proxy.py <port (Integer between 0 to 65535)> <flag_telemetry (0 or 1)> <filename of blacklist (String)>")
+        print("Please ensure that the arguments are in the correct format, and the blacklist file exists.")
         return
 
     # set up proxy socket
