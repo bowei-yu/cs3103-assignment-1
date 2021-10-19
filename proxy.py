@@ -4,6 +4,7 @@ import threading
 import select
 import time
 import queue
+import re
 
 clients = queue.Queue()
 
@@ -132,7 +133,7 @@ class ProxyThread(threading.Thread):
             if telemetry_enabled:
                 # fetch time
                 fetch_time = str(format((self.end_time - self.start_time), ".3f"))
-                print("Hostname: " + str(url) + ", Size: " + str(self.size) + " bytes, Time: " + fetch_time + " sec")
+                print("Hostname: " + re.sub(':\d+', '', str(url)) + ", Size: " + str(self.size) + " bytes, Time: " + fetch_time + " sec")
 
             # print("Threads active (including main but excluding current thread): ", threading.active_count() - 1, "\n")
 
