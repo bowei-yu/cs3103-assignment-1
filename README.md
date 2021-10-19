@@ -4,10 +4,12 @@
 ### 1. Install Python 3
 ### 2. For optimal performance, configure the following settings in Firefox about:config
 ![](images/config_firefox_conn_numbers.png)
-### 3. Pull the **main** branch of this Github repository to a destination local folder
-### 4. On the target platforms xcne1.comp.nus.edu.sg and xcne2.comp.nus.edu.sg, run the following command:
+### 3. Configure the network settings of Firefox accordingly to match the proxy's target platform and port
+### 4. On the target platforms xcne1.comp.nus.edu.sg and xcne2.comp.nus.edu.sg, navigate to the directory that contains proxy.py and run the following command:
 
-### **python3 proxy.py <port> <flag_telemetry> blacklist.txt**
+### `python3 proxy.py <port> <flag_telemetry> blacklist.txt`
+#### To terminate the proxy program, press Ctrl-C **twice**.
+
 
 </br>
 
