@@ -1,4 +1,5 @@
 # CS3103 Programming Assignment 1 - HTTP/HTTPS Proxy
+### Done by: Wong Jun Long (A0201889W) and Yu Bowei (A0205496Y)
 
 # Instructions to compile and run proxy
 ### 1. Install Python 3
